@@ -8,6 +8,9 @@ A single-page web app for making printable A4 PDFs of circular Pokémon button i
 - Pick Pokémon from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon) (1194 px Sugimori art, including Mega/Gmax/regional forms) or PokéAPI artwork. You can also upload your own images.
 - Button sizes: 7 cm, 4.5 cm and 3.5 cm faces, plus a custom size.
 - Drag, zoom, rotate and set a background colour for each image inside its circle.
+- Works on iPad: drag to move, pinch to zoom, twist with two fingers to rotate.
+- **Share design link** puts the whole design in a link (no server needed). Whoever opens it gets the same buttons, ready to tweak and print. Uploaded images can't go in a link.
+- **Send PDF** opens the share sheet (AirDrop, Messages, Mail) with the finished PDF.
 - Exports A4 PDFs at 300 dpi with grey cut lines, packed as tightly as possible (6 / 15 / 24 per sheet).
 
 ## Sizes

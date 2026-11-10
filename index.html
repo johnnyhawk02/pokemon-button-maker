@@ -27,12 +27,14 @@ header h1{font-size:18px;margin:0;display:flex;align-items:center;gap:8px}
 .sizes button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .sizes small{opacity:.8}
 .grow{flex:1}
+.actions{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
 .primary{background:var(--accent);color:var(--accent-ink);border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600}
 .primary:disabled{opacity:.5;cursor:default}
 .ghost{background:transparent;border:1px solid var(--line);padding:6px 10px;border-radius:8px;cursor:pointer}
 .ghost:hover{border-color:var(--muted)}
 main{display:grid;grid-template-columns:minmax(280px,1fr) minmax(320px,1.1fr) minmax(260px,.9fr);gap:12px;padding:12px;align-items:start}
-@media (max-width:1100px){main{grid-template-columns:1fr 1fr}#sheetPanel{grid-column:1/-1}}
+@media (max-width:1250px){header{position:static}}
+@media (max-width:1250px){main{grid-template-columns:1fr 1fr}#sheetPanel{grid-column:1/-1}}
 @media (max-width:720px){main{grid-template-columns:1fr}}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
 .panel h2{font-size:15px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
@@ -79,6 +81,18 @@ summary{cursor:pointer;font-weight:600}
 .swatches button{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);cursor:pointer;padding:0}
 .swatches button.on{outline:2px solid var(--accent);outline-offset:1px}
 .swatches input[type=color]{width:26px;height:24px;border:0;padding:0;background:none;cursor:pointer}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+#stage{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+@media (pointer:coarse){
+  .qty button,.x{width:34px;height:34px;font-size:16px}
+  .sizes button,.ghost,.primary{padding:10px 14px}
+  .swatches button{width:30px;height:30px}
+  .swatches input[type=color]{width:34px;height:32px}
+  input[type=range]{height:28px}
+  .item canvas{width:48px;height:48px}
+  #grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+}
 #busy{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;color:#fff;font-size:16px}
 </style>
 </head>
@@ -86,10 +100,14 @@ summary{cursor:pointer;font-weight:600}
 <header>
   <h1><span class="ball"></span>Pokémon Button Maker</h1>
   <div class="sizes" id="sizes"></div>
-  <div class="grow"></div>
+  <div class="actions">
   <span id="fitInfo" class="muted tiny"></span>
+  <button class="ghost" id="linkBtn" title="Share a link to this design. Opening it loads the same buttons, ready to print.">Share design link</button>
+  <button class="ghost" id="sendBtn" title="Send the PDF with AirDrop, Messages, Mail…">Send PDF</button>
   <button class="primary" id="pdfBtn">Download A4 PDF</button>
+  </div>
 </header>
+<div id="toast"></div>
 
 <main>
   <section class="panel">
@@ -121,7 +139,7 @@ summary{cursor:pointer;font-weight:600}
       <div class="legend">
         <span><i style="color:#e3350d"></i>Cut line</span>
         <span><i style="color:#2b7fff;border-top-style:dashed"></i>Visible button face</span>
-        <span>Drag to move · scroll / pinch to zoom</span>
+        <span>Drag to move · pinch or scroll to zoom · twist with two fingers to rotate</span>
       </div>
       <div class="ctrl"><label for="zoom">Zoom</label><input type="range" id="zoom" min="10" max="400" step="1"><span id="zoomV" class="tiny muted"></span></div>
       <div class="ctrl"><label for="rot">Rotate</label><input type="range" id="rot" min="-180" max="180" step="1"><span id="rotV" class="tiny muted"></span></div>
@@ -831,7 +849,7 @@ function drawStage(){
   if(!img){ ctx.fillStyle = "#888"; ctx.textAlign = "center"; ctx.font = `${13*g.dpr}px system-ui`; ctx.fillText("Loading image…", g.c, g.c); }
   $("curName").textContent = it.label;
   $("zoom").value = Math.round(it.scale * 100); $("zoomV").textContent = Math.round(it.scale*100) + "%";
-  $("rot").value = it.rot; $("rotV").textContent = it.rot + "°";
+  $("rot").value = it.rot; $("rotV").textContent = Math.round(it.rot) + "°";
   document.querySelectorAll("#sw button").forEach(b => b.classList.toggle("on", b.dataset.c === (it.bg || "")));
 }
 function renderSwatches(){
@@ -853,8 +871,8 @@ $("allBtn").addEventListener("click", () => {
   S.items.forEach(o => { o.scale = it.scale; o.ox = it.ox; o.oy = it.oy; o.rot = it.rot; o.bg = it.bg; }); edited();
 });
 
-const ptrs = new Map(); let pinch = null;
-stage.addEventListener("pointerdown", e => { if(!cur()) return; stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY}); stage.classList.add("drag"); if(ptrs.size === 2) pinch = null; });
+const ptrs = new Map(); let pinch = null, twist = null;
+stage.addEventListener("pointerdown", e => { if(!cur()) return; stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY}); stage.classList.add("drag"); if(ptrs.size === 2){ pinch = null; twist = null; } });
 stage.addEventListener("pointermove", e => {
   const it = cur(); if(!it || !ptrs.has(e.pointerId)) return;
   const prev = ptrs.get(e.pointerId), Dcss = 2*stageGeom().cssR;
@@ -863,12 +881,18 @@ stage.addEventListener("pointermove", e => {
     ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY}); edited();
   } else if(ptrs.size === 2){
     ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
-    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x-b.x, a.y-b.y);
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x-b.x, a.y-b.y), ang = Math.atan2(b.y-a.y, b.x-a.x)*180/Math.PI;
     if(pinch) zoomBy(d / pinch);
-    pinch = d;
+    if(twist !== null){
+      let da = ang - twist; if(da > 180) da -= 360; if(da < -180) da += 360;
+      it.rot = Math.round((it.rot + da) * 10) / 10;
+      if(it.rot > 180) it.rot -= 360; if(it.rot < -180) it.rot += 360;
+      edited();
+    }
+    pinch = d; twist = ang;
   }
 });
-const up = e => { ptrs.delete(e.pointerId); pinch = null; if(!ptrs.size) stage.classList.remove("drag"); };
+const up = e => { ptrs.delete(e.pointerId); pinch = null; twist = null; if(!ptrs.size) stage.classList.remove("drag"); };
 stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
 stage.addEventListener("wheel", e => { if(!cur()) return; e.preventDefault(); zoomBy(Math.exp(-e.deltaY * 0.0015)); }, {passive:false});
 function zoomBy(f){ const it = cur(); it.scale = Math.min(4, Math.max(0.1, it.scale * f)); edited(); }
@@ -915,7 +939,7 @@ function renderPages(){
     wrap.append(c, document.createTextNode(`Page ${p+1}`));
     box.append(wrap);
   }
-  $("pdfBtn").disabled = !all.length || !per;
+  $("pdfBtn").disabled = $("sendBtn").disabled = !all.length || !per;
   const s = SIZES.find(x => x.key === S.size);
   $("assume").innerHTML = `<b>Sizes:</b> the button face is <b>${S.face} mm</b> (dashed blue): that's what shows on the front, so keep the Pokémon inside it. `
    + `Each disc is cut at <b>${S.cut} mm</b> (grey line) so the image wraps round the edge, with ${((S.cut - S.face)/2).toFixed(1)} mm extra all round to cover the wrap and slightly-off placement in the press. `
@@ -931,11 +955,8 @@ function lowRes(){
   return bad.length ? `<br><b>Heads up:</b> ${bad.map(i => i.label).join(", ")} will print below 200 dpi at this size/zoom and may look soft. HybridShivam artwork is sharper. ` : "";
 }
 /* ---------- PDF ---------- */
-$("pdfBtn").addEventListener("click", async () => {
-  const pos = layout(), all = slots(), per = pos.length;
-  if(!all.length || !per) return;
-  $("busy").style.display = "flex";
-  try{
+async function buildPdf(){
+    const pos = layout(), all = slots(), per = pos.length;
     await Promise.all(S.items.map(it => want(it.src)));
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({unit:"mm", format:"a4", orientation:"portrait", compress:true});
@@ -964,16 +985,90 @@ $("pdfBtn").addEventListener("click", async () => {
       pdf.setFontSize(6); pdf.setTextColor(140);
       pdf.text(`Cut ${S.cut} mm · face ${S.face} mm · print at 100% (Actual size) · page ${p+1}/${pages}`, A4.w/2, A4.h - 1.8, {align:"center"});
     }
-    pdf.save(`pokemon-buttons-${S.cut}mm.pdf`);
-  }catch(err){ alert("Couldn't build the PDF: " + err.message); }
+    return pdf;
+}
+const pdfName = () => `pokemon-buttons-${S.face/10}cm.pdf`;
+async function withBusy(fn){
+  if(!slots().length || !layout().length) return;
+  $("busy").style.display = "flex";
+  try{ await fn(); }
+  catch(err){ if(err && err.name !== "AbortError") alert("Something went wrong: " + err.message); }
   finally{ $("busy").style.display = "none"; }
+}
+$("pdfBtn").addEventListener("click", () => withBusy(async () => (await buildPdf()).save(pdfName())));
+$("sendBtn").addEventListener("click", () => withBusy(async () => {
+  const pdf = await buildPdf();
+  const file = new File([pdf.output("blob")], pdfName(), {type:"application/pdf"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    $("busy").style.display = "none";
+    await navigator.share({files:[file], title:"Pokémon buttons", text:`${slots().length} Pokémon buttons, ${S.face/10} cm. Print at 100% / Actual size.`});
+  } else {
+    pdf.save(pdfName());
+    toast("This browser can't open the share menu, so the PDF was downloaded instead.");
+  }
+}));
+
+/* ---------- share design link ---------- */
+function toast(msg){ const el = $("toast"); el.textContent = msg; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 3500); }
+const b64u = {
+  enc: bytes => { let s = ""; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); },
+  dec: str => { const s = atob(str.replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
+};
+async function pipe(bytes, Stream, fmt){ return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new Stream(fmt))).arrayBuffer()); }
+const shortSrc = s => s.startsWith(REPO) ? "h:" + s.slice(REPO.length) : s.startsWith(POKEAPI) ? "p:" + s.slice(POKEAPI.length) : s;
+const longSrc = s => s.startsWith("h:") ? REPO + s.slice(2) : s.startsWith("p:") ? POKEAPI + s.slice(2) : s;
+const r4 = x => Math.round(x * 1e4) / 1e4;
+async function encodeDesign(){
+  const items = S.items.filter(it => !it.src.startsWith("data:")).map(it =>
+    [shortSrc(it.src), it.label, r4(it.scale), r4(it.ox), r4(it.oy), r4(it.rot), it.bg || "", it.qty]);
+  const d = {v:1, size:S.size, cut:S.cut, face:S.face, bleed:S.bleed, gap:S.gap, margin:S.margin, cutLines:S.cutLines, faceLines:S.faceLines, items};
+  const raw = new TextEncoder().encode(JSON.stringify(d));
+  if(window.CompressionStream) return "z" + b64u.enc(await pipe(raw, CompressionStream, "deflate-raw"));
+  return "j" + b64u.enc(raw);
+}
+async function decodeDesign(code){
+  let bytes = b64u.dec(code.slice(1));
+  if(code[0] === "z") bytes = await pipe(bytes, DecompressionStream, "deflate-raw");
+  const d = JSON.parse(new TextDecoder().decode(bytes));
+  d.items = d.items.map(([src, label, scale, ox, oy, rot, bg, qty]) => ({src:longSrc(src), label, scale, ox, oy, rot, bg, qty, file:src}));
+  return d;
+}
+$("linkBtn").addEventListener("click", async () => {
+  if(!S.items.length){ toast("Add some buttons first."); return; }
+  const skipped = S.items.filter(it => it.src.startsWith("data:")).length;
+  const url = location.href.split("#")[0] + "#d=" + await encodeDesign();
+  const note = skipped ? ` (${skipped} uploaded image${skipped>1?"s":""} can't go in a link: use Send PDF for those)` : "";
+  if(navigator.share && /iPad|iPhone|Android|Mobi/.test(navigator.userAgent + (navigator.maxTouchPoints > 1 ? " iPad" : ""))){
+    try{ await navigator.share({title:"Pokémon button design", text:"Open this to see my button design and print it:", url}); if(note) toast("Shared" + note); return; }
+    catch(e){ if(e.name === "AbortError") return; }
+  }
+  try{ await navigator.clipboard.writeText(url); toast("Link copied" + (note || ". Paste it into a message or email.")); }
+  catch(e){ prompt("Copy this link:", url); }
 });
+async function loadFromHash(){
+  const m = /#d=([A-Za-z0-9_-]+)/.exec(location.hash); if(!m) return;
+  try{
+    const d = await decodeDesign(m[1]);
+    const n = d.items.reduce((a, i) => a + i.qty, 0);
+    const replace = !S.items.length || confirm(`Open the shared design (${d.items.length} Pokémon, ${n} buttons at ${d.face/10} cm)?\n\nOK replaces your current buttons. Cancel adds them to your list.`);
+    for(const k of ["size","cut","face","bleed","gap","margin","cutLines","faceLines"]) if(k in d) S[k] = d[k];
+    const items = d.items.map(i => Object.assign(i, {id:"i" + (++uid)}));
+    S.items = replace ? items : S.items.concat(items);
+    S.cur = items[0]?.id ?? S.cur;
+    history.replaceState(null, "", location.href.split("#")[0]);
+    renderSizes(); syncSettings(); renderGrid(); refreshAll();
+    items.forEach(it => want(it.src).then(refreshAll).catch(() => {}));
+    toast(`Loaded shared design: ${n} buttons`);
+  }catch(e){ alert("That design link looks broken or incomplete: " + e.message); }
+}
+window.addEventListener("hashchange", loadFromHash);
 
 /* ---------- boot ---------- */
 function refreshAll(){ save(); renderList(); drawStage(); renderPages(); }
 $("source").value = S.source; renderSizes(); renderSwatches(); syncSettings(); renderGrid(); refreshAll();
 S.items.forEach(it => want(it.src).then(refreshAll).catch(() => {}));
 loadTree();
+loadFromHash();
 </script>
 </body>
 </html>
