@@ -590,7 +590,14 @@ const SIZES = [
   {key:"35", cut:46, face:35, label:"3.5 cm", sub:"cut 46 mm"},
 ];
 const A4 = {w:210, h:297};
-const SWATCHES = ["", "#ffffff", "#000000", "#e3350d", "#ffcb05", "#3d7dca", "#78c850", "#f4a3c0", "#a890f0"];
+// Background presets: strong, saturated colours that print cleanly on a colour laser printer
+// (no pale pastels or subtle mid-tones that toner tends to wash out or band).
+const SWATCHES = [
+  ["", "None (transparent)"],
+  ["#e3001b", "Red"], ["#ffd400", "Yellow"], ["#0057b8", "Blue"], ["#009b3a", "Green"],
+  ["#ff7a00", "Orange"], ["#7b2d8e", "Purple"], ["#e6007e", "Magenta"], ["#00a0df", "Cyan"],
+  ["#8b4513", "Brown"], ["#1a1a1a", "Black"], ["#ffffff", "White"], ["#ffc0d9", "Light pink"]
+];
 
 /* ---------- state ---------- */
 const store = {
@@ -853,7 +860,7 @@ function drawStage(){
   document.querySelectorAll("#sw button").forEach(b => b.classList.toggle("on", b.dataset.c === (it.bg || "")));
 }
 function renderSwatches(){
-  $("sw").innerHTML = SWATCHES.map(c => `<button data-c="${c}" title="${c||"None (transparent)"}" style="background:${c||"repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 0 0/8px 8px"}"></button>`).join("")
+  $("sw").innerHTML = SWATCHES.map(([c, name]) => `<button data-c="${c}" title="${name}${c ? " " + c.toUpperCase() : ""}" aria-label="${name}" style="background:${c||"repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 0 0/8px 8px"}"></button>`).join("")
     + `<input type="color" id="bgPick" title="Custom colour">`;
 }
 $("sw").addEventListener("click", e => { const b = e.target.closest("button"); const it = cur(); if(!b || !it) return; it.bg = b.dataset.c; edited(); });
